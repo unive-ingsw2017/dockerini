@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <ListPreference
+        android:title="@string/menu_mapStyle_title"
+        android:summary="@string/menu_mapStyle_summary"
+        android:key="pref_mapStyle"
+        android:defaultValue="1"
+        android:entries="@array/mapStyleArray"
+        android:entryValues="@array/mapStyleValues" />
+</PreferenceScreen>

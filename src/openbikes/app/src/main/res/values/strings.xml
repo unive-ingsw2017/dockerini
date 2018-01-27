@@ -1,0 +1,43 @@
+<resources>
+    <!-- Customize your app's name here. -->
+    <string name="app_name">OpenBikes</string>
+    <string name="title_activity_maps">OpenBikes - Mappa</string>
+    <!-- -->
+
+    <string name="gps_disabled">GPS disattivato</string>
+    <string name="gps_enabled">GPS attivato</string>
+    <string name="conn_failed">Connessione fallita</string>
+    <string name="conn_suspended">Connessione sospesa</string>
+
+
+    <string name="menu_mapStyle_title">Stile Mappa</string>
+    <string name="menu_mapStyle_summary">Scegli il tipo di mappa di Google Maps</string>
+
+    <string name="menu_mapStyle_normal">Standard</string>
+    <string name="menu_mapStyle_satellite">Satellite</string>
+    <string name="menu_mapStyle_terrain">Terreno</string>
+    <string name="menu_mapStyle_hybrid">Ibrido</string>
+
+    <string name="credits_authors">Nicolas Cecco\nMarco Carfizzi\nAndrea Ottolino\nGiacomo Arrigo</string>
+
+    <string name="action_info">Info</string>
+    <string name="action_impostazioni">Impostazioni</string>
+
+    <string name="search_hint">Cerca località</string>
+    <string name="cancel_filters">Annulla</string>
+    <string name="apply_filters">Applica</string>
+    <string name="more_info">Maggiori informazioni</string>
+    <string name="tilt_device">Gira il dispositivo per vedere in full-screen</string>
+    <string name="navigate">Portami</string>
+    <string name="geocode_error">Impossibile trovare la località specificata</string>
+    <string name="request_permission_failed_title">Permessi non garantiti</string>
+    <string name="request_permission_failed_message">OpenBikes non può funzionare senza i permessi necessari. Riapri l\'applicazione per garantirli.</string>
+    <string name="localization_error">OpenBikes non riesce a determinare la tua posizione, controlla le impostazioni del GPS.</string>
+    <string name="progressDialog_title">Caricamento</string>
+    <string name="progressDialog_message">Attendi mentre i punti di interesse vengono caricati...</string>
+
+    <string name="place_name">Nome:\u0020</string>
+    <string name="place_category">Tipo:\u0020</string>
+    <string name="place_date">Aggiunto il:\u0020</string>
+    <string name="place_address">Indirizzo:\u0020</string>
+</resources>
