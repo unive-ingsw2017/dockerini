@@ -3,6 +3,7 @@ package it.unive.dockerini.openbikes.activities;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.arch.persistence.room.Room;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -49,16 +50,25 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.maps.android.clustering.ClusterManager;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 import java.util.concurrent.ExecutionException;
 
 import it.unive.dais.cevid.datadroid.lib.parser.CsvRowParser;
 import it.unive.dais.cevid.datadroid.lib.parser.RecoverableParseException;
+import it.unive.dockerini.openbikes.util.AppDatabase;
 import it.unive.dockerini.openbikes.util.MapItemCluster;
+import it.unive.dockerini.openbikes.util.PuntoInteresse;
+import it.unive.dockerini.openbikes.util.Versione;
 
 public class MapsActivity extends AppCompatActivity
         implements OnMapReadyCallback,
@@ -72,6 +82,11 @@ public class MapsActivity extends AppCompatActivity
     protected static final int PERMISSIONS_REQUEST_ACCESS_BOTH_LOCATION = 501;
     private static final String TAG = "MapsActivity";
     protected GoogleMap gMap;
+
+    /**
+     * Riferimento al database creato utilizzando Room
+     */
+    AppDatabase db = Room.databaseBuilder(MapsActivity.this, AppDatabase.class, "openbikes.db").build();
 
     /**
      * pulsanti sovrapposti alla mappa
@@ -296,6 +311,7 @@ public class MapsActivity extends AppCompatActivity
     @Override
     protected void onStop() {
         super.onStop();
+        Log.d(TAG, "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk onStop");
     }
 
     @Override
@@ -307,11 +323,13 @@ public class MapsActivity extends AppCompatActivity
     @Override
     protected void onPause() {
         super.onPause();
+        Log.d(TAG, "pppppppppppppppppppppppppppppppppppppppppppppppppppppp onPause");
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Log.d(TAG, "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr onDestroy");
         gMap.clear();
     }
 
@@ -430,47 +448,103 @@ public class MapsActivity extends AppCompatActivity
         progress.setCancelable(false);
         progress.setIndeterminate(false);
         progress.show();
-
         /**
-         * Effettuo il parsing del csv e la creazione della lista clusterItems usando un task asincrono,
+         * Effettuo la creazione della lista clusterItems usando un task asincrono,
          * altrimenti il thread principale non gestirebbe la grafica e l'applicazione sembrerebbe bloccata
          */
         RiempiMappaTask task = new RiempiMappaTask();
         task.execute();
+
+
     }
 
-    protected class RiempiMappaTask extends AsyncTask<Void, Integer, Void> {
+    protected class RiempiMappaTask extends AsyncTask<Void, Integer, Integer> {
         @Override
-        protected Void doInBackground(Void... params) {
-            try {
-                InputStream is = getResources().openRawResource(R.raw.biciclette);
-                CsvRowParser p = new CsvRowParser(new InputStreamReader(is), true, ";", null);
-                List<CsvRowParser.Row> rows = p.getAsyncTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR).get();
+        protected Integer doInBackground(Void... params) {
+            int currVers = 0;
+            int newVers = -1;
+            //se nel db è stata salvata l'ultima versione del file csv parsato allora la prendo
+            if (!db.versioneDao().getAll().isEmpty()) {
+                currVers = db.versioneDao().getAll().get(0).versione;
+            }
+
+            //leggo la versione del file csv più aggiornato dalla repo github
+            try{
+                URL url = new URL("https://raw.githubusercontent.com/unive-ingsw2017/dockerini/master/versioneCSV.txt");
+                Scanner s = new Scanner(url.openStream());
+                newVers = s.nextInt();
+            }catch(IOException e){
+
+            }
+
+
+            //controllo che la versione salvata nel db sia uguale a quella online
+            if (newVers == currVers) {
+                //se coincidono allora i dati salvati nel db sono aggiornati e possono essere usati
+                List<PuntoInteresse> punti = db.puntoInteresseDao().getAll();
                 int i = 0;
                 //dichiaro il numero totale di punti
-                publishProgress(null, rows.size());
-
-                //Per ogni riga parsata aggiungo un MapItemCluster alla lista clusterItems
-                //e aggiungo latitudine e longitudine del punto al boundsBuilder
-                for (final CsvRowParser.Row r : rows) {
-                    try {
-                        if (!r.get("Tipo").equals("") && !categorie.contains(r.get("Tipo"))) {
-                            categorie.add(r.get("Tipo"));
-                        }
-                        MapItemCluster itemCluster = new MapItemCluster(r.get("Latitudine"), r.get("Longitudine"), r.get("Nome").equals("") ? "Nome non specificato" : r.get("Nome"), r.get("Tipo"), r.get("Data e ora inserimento"));
-                        clusterItems.add(itemCluster);
-                        boundsBuilder.include(itemCluster.getPosition());
-                    } catch (RecoverableParseException e) {
-                        Log.e(TAG, e.getMessage());
-                    }
+                publishProgress(null, punti.size());
+                for (PuntoInteresse p : punti) {
+                    MapItemCluster itemCluster = new MapItemCluster(p.latitudine, p.longitudine, p.mTitle, p.mSnippet, p.dataAggiunta);
+                    clusterItems.add(itemCluster);
+                    boundsBuilder.include(itemCluster.getPosition());
                     i++;
-                    //dico al thread principale a che punto sono arrivato
-                    publishProgress(i);
+                    if (i % 100 == 0) {
+                        //dico al thread principale a che punto sono arrivato
+                        publishProgress(i);
+                    }
                 }
-            } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
+            } else {
+                //altrimenti bisogna parsare il nuovo csv
+
+                //se la nuova versione è valida la scrivo sul db
+                if(newVers != -1){
+                    db.versioneDao().deleteAll();
+                    db.versioneDao().insert(new Versione(newVers));
+                }
+
+                //elimino tutti i punti salvati nel db
+                db.puntoInteresseDao().deleteAll();
+
+                try {
+                    //creo un'inputStream usando il file csv sulla repo github e lo parso
+                    InputStream input = new URL("https://raw.githubusercontent.com/unive-ingsw2017/dockerini/master/biciclette.csv").openStream();
+                    CsvRowParser p = new CsvRowParser(new InputStreamReader(input), true, ";", null);
+                    List<CsvRowParser.Row> rows = p.getAsyncTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR).get();
+
+                    int i = 0;
+                    //dichiaro il numero totale di punti
+                    publishProgress(null, rows.size());
+
+                    for (final CsvRowParser.Row r : rows) {
+                        try {
+                            if (!r.get("Tipo").equals("") && !categorie.contains(r.get("Tipo"))) {
+                                categorie.add(r.get("Tipo"));
+                            }
+                            MapItemCluster itemCluster = new MapItemCluster(r.get("Latitudine"), r.get("Longitudine"), r.get("Nome").equals("") ? "Nome non specificato" : r.get("Nome"), r.get("Tipo"), r.get("Data e ora inserimento"));
+                            //inserisco il punto nel db
+                            db.puntoInteresseDao().insert(new PuntoInteresse(r.get("Latitudine"), r.get("Longitudine"), itemCluster.getTitle(), itemCluster.getSnippet(), itemCluster.getDataAggiunta()));
+                            //aggiungo il punto alla lista di MapItemCluster
+                            clusterItems.add(itemCluster);
+                            //aggiungo le coordinate al boundsBuilder
+                            boundsBuilder.include(itemCluster.getPosition());
+                        } catch (RecoverableParseException e) {
+                            Log.e(TAG, e.getMessage());
+                        }
+                        i++;
+                        if (i % 100 == 0) {
+                            //dico al thread principale a che punto sono arrivato
+                            publishProgress(i);
+                        }
+                    }
+                } catch (IOException | InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                    return -1;
+                }
             }
-            return null;
+
+            return 0;
         }
 
         @Override
@@ -478,7 +552,7 @@ public class MapsActivity extends AppCompatActivity
             super.onProgressUpdate(values);
             //codice eseguito sul thread principale
             if (values[0] == null) {
-                //setto il massimosul progressDialog
+                //setto il massimo sul progressDialog
                 progress.setMax(values[1]);
             } else
                 //setto il progresso
@@ -486,52 +560,57 @@ public class MapsActivity extends AppCompatActivity
         }
 
         @Override
-        protected void onPostExecute(Void aVoid) {
+        protected void onPostExecute(Integer par) {
             //codice eseguito sul thread principale
-            super.onPostExecute(aVoid);
-            //inizializzo il clusterManager
-            mClusterManager = new ClusterManager<MapItemCluster>(MapsActivity.this, gMap);
+            super.onPostExecute(par);
+            if(par >= 0){
+                //inizializzo il clusterManager
+                mClusterManager = new ClusterManager<MapItemCluster>(MapsActivity.this, gMap);
 
-            //setto il clusterManager sui listener della mappa
-            gMap.setOnCameraIdleListener(mClusterManager);
-            gMap.setOnMarkerClickListener(mClusterManager);
+                //setto il clusterManager sui listener della mappa
+                gMap.setOnCameraIdleListener(mClusterManager);
+                gMap.setOnMarkerClickListener(mClusterManager);
 
-            //setto l'infoWindow adapter
-            gMap.setInfoWindowAdapter(mClusterManager.getMarkerManager());
+                //setto l'infoWindow adapter
+                gMap.setInfoWindowAdapter(mClusterManager.getMarkerManager());
 
-            mClusterManager.setOnClusterItemInfoWindowClickListener(MapsActivity.this);
+                mClusterManager.setOnClusterItemInfoWindowClickListener(MapsActivity.this);
 
-            //codice eseguito quando viene cliccato un MapItemCluster, cioè un marker
-            mClusterManager.setOnClusterItemClickListener(new ClusterManager.OnClusterItemClickListener<MapItemCluster>() {
-                @Override
-                public boolean onClusterItemClick(MapItemCluster item) {
-                    clickedClusterItem = item;
-                    return false;
+                //codice eseguito quando viene cliccato un MapItemCluster, cioè un marker
+                mClusterManager.setOnClusterItemClickListener(new ClusterManager.OnClusterItemClickListener<MapItemCluster>() {
+                    @Override
+                    public boolean onClusterItemClick(MapItemCluster item) {
+                        clickedClusterItem = item;
+                        return false;
+                    }
+                });
+
+                //aggiungo la lista di MapItemCluster al clusterManager
+                mClusterManager.addItems(clusterItems);
+                mClusterManager.getMarkerCollection().setOnInfoWindowAdapter(new CustomAdapterForItems());
+                gMap.setOnInfoWindowClickListener(mClusterManager);
+
+                //per ogni categoria creo una checkbox
+                for (String c : categorie) {
+                    CheckBox cb = new CheckBox(MapsActivity.this);
+                    cb.setText(c);
+                    cb.setChecked(true);
+                    layoutFiltri.addView(cb);
                 }
-            });
 
-            //aggiungo la lista di MapItemCluster al clusterManager
-            mClusterManager.addItems(clusterItems);
-            mClusterManager.getMarkerCollection().setOnInfoWindowAdapter(new CustomAdapterForItems());
-            gMap.setOnInfoWindowClickListener(mClusterManager);
+                //inizialmente tutti i filtri sono selezionati
+                filters = new ArrayList<String>(categorie);
 
-            //per ogni categoria creo una checkbox
-            for (String c : categorie) {
-                CheckBox cb = new CheckBox(MapsActivity.this);
-                cb.setText(c);
-                cb.setChecked(true);
-                layoutFiltri.addView(cb);
+
+                //aggiorno la mappa
+                mClusterManager.cluster();
+                //uso il boundsBuilder per muovere la camera in modo da comprendere tutti i marker e settare lo zoom più adatto
+                gMap.moveCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 100));
+            }else{
+                Toast.makeText(MapsActivity.this, "Impossibile caricare i punti di interesse, contatta gli sviluppatori.", Toast.LENGTH_LONG).show();
             }
-
-            //inizialmente tutti i filtri sono selezionati
-            filters = new ArrayList<String>(categorie);
-
             //chiudo il progressDialog
             progress.dismiss();
-            //aggiorno la mappa
-            mClusterManager.cluster();
-            //uso il boundsBuilder per muovere la camera in modo da comprendere tutti i marker e settare lo zoom più adatto
-            gMap.moveCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 100));
         }
     }
 

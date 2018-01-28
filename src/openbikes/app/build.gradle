@@ -9,6 +9,11 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        javaCompileOptions {
+            annotationProcessorOptions {
+                includeCompileClasspath true
+            }
+        }
     }
     buildTypes {
         release {
@@ -38,4 +43,10 @@ dependencies {
     compile 'com.squareup.okhttp3:okhttp:3.8.1'
     testCompile 'junit:junit:4.12'
     compile project(path: ':lib')
+    implementation("android.arch.persistence.room:runtime:1.0.0") {
+        exclude group: 'com.android.support'
+    }
+    annotationProcessor("android.arch.persistence.room:compiler:1.0.0") {
+        exclude group: 'com.android.support'
+    }
 }

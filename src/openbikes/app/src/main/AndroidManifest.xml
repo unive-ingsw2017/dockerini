@@ -36,7 +36,6 @@
 
         <activity
             android:name="it.unive.dockerini.openbikes.activities.MapsActivity"
-            android:label="@string/title_activity_maps"
             android:configChanges="orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -47,7 +46,7 @@
 
         <activity
             android:name="it.unive.dockerini.openbikes.activities.InfoActivity"
-            android:parentActivityName="it.unive.dais.cevid.datadroid.activities.it.unive.dais.cevid.openbikes.activities.MapsActivity">
+            android:parentActivityName="it.unive.dockerini.openbikes.activities.MapsActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="it.unive.dockerini.openbikes.activities.MapsActivity" />
