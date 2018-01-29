@@ -469,11 +469,11 @@ public class MapsActivity extends AppCompatActivity
             }
 
             //leggo la versione del file csv più aggiornato dalla repo github
-            try{
+            try {
                 URL url = new URL("https://raw.githubusercontent.com/unive-ingsw2017/dockerini/master/versioneCSV.txt");
                 Scanner s = new Scanner(url.openStream());
                 newVers = s.nextInt();
-            }catch(IOException e){
+            } catch (IOException e) {
 
             }
 
@@ -486,6 +486,9 @@ public class MapsActivity extends AppCompatActivity
                 //dichiaro il numero totale di punti
                 publishProgress(null, punti.size());
                 for (PuntoInteresse p : punti) {
+                    if (!categorie.contains(p.mSnippet)) {
+                        categorie.add(p.mSnippet);
+                    }
                     MapItemCluster itemCluster = new MapItemCluster(p.latitudine, p.longitudine, p.mTitle, p.mSnippet, p.dataAggiunta);
                     clusterItems.add(itemCluster);
                     boundsBuilder.include(itemCluster.getPosition());
@@ -499,7 +502,7 @@ public class MapsActivity extends AppCompatActivity
                 //altrimenti bisogna parsare il nuovo csv
 
                 //se la nuova versione è valida la scrivo sul db
-                if(newVers != -1){
+                if (newVers != -1) {
                     db.versioneDao().deleteAll();
                     db.versioneDao().insert(new Versione(newVers));
                 }
@@ -563,7 +566,7 @@ public class MapsActivity extends AppCompatActivity
         protected void onPostExecute(Integer par) {
             //codice eseguito sul thread principale
             super.onPostExecute(par);
-            if(par >= 0){
+            if (par >= 0) {
                 //inizializzo il clusterManager
                 mClusterManager = new ClusterManager<MapItemCluster>(MapsActivity.this, gMap);
 
@@ -606,7 +609,7 @@ public class MapsActivity extends AppCompatActivity
                 mClusterManager.cluster();
                 //uso il boundsBuilder per muovere la camera in modo da comprendere tutti i marker e settare lo zoom più adatto
                 gMap.moveCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 100));
-            }else{
+            } else {
                 Toast.makeText(MapsActivity.this, "Impossibile caricare i punti di interesse, contatta gli sviluppatori.", Toast.LENGTH_LONG).show();
             }
             //chiudo il progressDialog
