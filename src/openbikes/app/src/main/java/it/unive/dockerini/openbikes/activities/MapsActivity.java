@@ -285,7 +285,6 @@ public class MapsActivity extends AppCompatActivity
             public void onClick(View v) {
                 updateCurrentPosition();
                 if (currentPosition != null) {
-                    Log.d(TAG, "click qui");
                     if (gMap != null)
                         gMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentPosition, getResources().getInteger(R.integer.zoomFactor_button_here)));
                 }
@@ -311,7 +310,6 @@ public class MapsActivity extends AppCompatActivity
     @Override
     protected void onStop() {
         super.onStop();
-        Log.d(TAG, "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk onStop");
     }
 
     @Override
@@ -323,13 +321,11 @@ public class MapsActivity extends AppCompatActivity
     @Override
     protected void onPause() {
         super.onPause();
-        Log.d(TAG, "pppppppppppppppppppppppppppppppppppppppppppppppppppppp onPause");
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr onDestroy");
         gMap.clear();
     }
 
